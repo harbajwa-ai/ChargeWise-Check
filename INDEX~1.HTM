@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reasonable</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#EDF0F2;
+    --panel:#F7F9FA;
+    --ink:#131B2B;
+    --ink-soft:#55606E;
+    --rule:#C9D2D9;
+    --flag:#B5650A;
+    --fine:#2F6F5E;
+    --focus:#131B2B;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1520;
+      --panel:#161E2B;
+      --ink:#E7EBEF;
+      --ink-soft:#9AA7B4;
+      --rule:#2B3644;
+      --flag:#E0913D;
+      --fine:#4FA893;
+      --focus:#E7EBEF;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1520;
+    --panel:#161E2B;
+    --ink:#E7EBEF;
+    --ink-soft:#9AA7B4;
+    --rule:#2B3644;
+    --flag:#E0913D;
+    --fine:#4FA893;
+    --focus:#E7EBEF;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    margin:0;
+  }
+  ::selection{ background:var(--flag); color:var(--panel); }
+  :focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  .wrap{ max-width:1100px; margin:0 auto; padding:2.75rem 1.5rem 4rem; }
+
+  .header-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:1.5rem; }
+
+  /* ---------- theme toggle (sliding switch) ---------- */
+  .theme-toggle{
+    flex:none; position:relative; width:52px; height:28px; margin-top:.3rem;
+    border-radius:999px; border:1px solid var(--rule); background:var(--panel);
+    padding:0; cursor:pointer;
+  }
+  .theme-toggle .track-icon{
+    position:absolute; top:50%; transform:translateY(-50%); width:14px; height:14px;
+    color:var(--ink-soft); pointer-events:none;
+  }
+  .theme-toggle .track-icon.sun{ left:5px; }
+  .theme-toggle .track-icon.moon{ right:5px; }
+  .theme-toggle .thumb{
+    position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+    background:var(--ink); transition:transform .18s ease;
+  }
+  .theme-toggle[aria-checked="true"] .thumb{ transform:translateX(24px); }
+
+  header{ margin-bottom:2.25rem; max-width:62ch; }
+  .wordmark{
+    font-family:"Newsreader", Georgia, serif;
+    font-weight:600;
+    font-style:italic;
+    font-size:clamp(2.3rem, 5vw, 3.2rem);
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+    margin:0;
+  }
+  .tagline{
+    margin-top:.5rem;
+    font-size:.8rem;
+    letter-spacing:.13em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .subhead{ margin-top:1rem; color:var(--ink-soft); font-size:1rem; max-width:56ch; }
+  .statute{
+    margin-top:.9rem;
+    font-size:.82rem;
+    color:var(--ink-soft);
+    border-left:2px solid var(--rule);
+    padding-left:.7rem;
+  }
+  .statute b{ color:var(--ink); font-weight:600; }
+
+  .board{ display:grid; grid-template-columns:minmax(320px,420px) 1fr; gap:1.75rem; align-items:start; }
+  @media (max-width:900px){ .board{ grid-template-columns:1fr; } }
+
+  .panel{ background:var(--panel); border:1px solid var(--rule); border-radius:4px; }
+
+  .worksheet{ padding:1.5rem 1.5rem 1.75rem; }
+  .panel-eyebrow{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:.68rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-soft); display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:.35rem;
+  }
+  .panel-title{ font-family:"Newsreader", Georgia, serif; font-weight:600; font-size:1.4rem; margin:0 0 .25rem; }
+  .panel-note{ font-size:.85rem; color:var(--ink-soft); margin-bottom:1.2rem; }
+  .example-tag{
+    font-family:"IBM Plex Mono", monospace; font-size:.65rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft); border:1px solid var(--rule); padding:.15rem .5rem; border-radius:2px;
+  }
+
+  .field{ margin-bottom:1rem; }
+  .field label{
+    display:block; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft); margin-bottom:.3rem;
+  }
+  .field input, .field textarea, .field select{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--rule);
+    padding:.35rem 0 .4rem; font-size:.95rem; color:var(--ink); font-family:"IBM Plex Sans", sans-serif;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus{ border-bottom-color:var(--ink); }
+  .field textarea{ resize:vertical; min-height:3rem; font-size:.88rem; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:0 1.2rem; }
+  .row-check{ display:flex; align-items:center; gap:.5rem; font-size:.85rem; padding:.4rem 0; }
+  .row-check input{ width:auto; accent-color:var(--ink); }
+
+  .money-field{ display:flex; align-items:baseline; border-bottom:1px solid var(--rule); }
+  .money-field:focus-within{ border-bottom-color:var(--ink); }
+  .money-field .currency-prefix{
+    font-family:"IBM Plex Mono", monospace; font-weight:600; color:var(--ink-soft);
+    padding:.35rem .25rem .4rem 0; user-select:none;
+  }
+  .money-field input{ border:none; padding:.35rem 0 .4rem; flex:1; min-width:0; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; }
+
+  .charges-label{ font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:.4rem; }
+  .charge-row{ display:grid; grid-template-columns:1fr 8.5rem auto; gap:.6rem; align-items:end; margin-bottom:.55rem; }
+  .charge-row .field{ margin-bottom:0; }
+  .remove-row{
+    background:none; border:none; color:var(--ink-soft); font-size:1.1rem; line-height:1;
+    cursor:pointer; padding:.4rem .3rem; border-radius:3px;
+  }
+  .remove-row:hover{ color:var(--flag); }
+  .add-row{
+    background:none; border:1px dashed var(--rule); color:var(--ink-soft); font-family:"IBM Plex Sans", sans-serif;
+    font-size:.82rem; font-weight:600; padding:.5rem .8rem; border-radius:3px; cursor:pointer; width:100%; margin-top:.2rem;
+  }
+  .add-row:hover{ border-color:var(--ink); color:var(--ink); }
+
+  .totals{
+    display:flex; justify-content:space-between; align-items:baseline; margin:1.1rem 0 1.3rem;
+    padding-top:.8rem; border-top:1px solid var(--rule);
+    font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums;
+  }
+  .totals .amount{ font-size:1.3rem; font-weight:600; }
+  .totals .perflat{ font-size:.78rem; color:var(--ink-soft); text-align:right; }
+
+  .cta{
+    width:100%; margin-top:.2rem; background:var(--ink); color:var(--panel); border:none; border-radius:3px;
+    padding:.85rem 1rem; font-family:"IBM Plex Sans", sans-serif; font-weight:700; font-size:.92rem;
+    letter-spacing:.02em; cursor:pointer; transition:opacity .15s ease;
+  }
+  .cta:hover{ opacity:.88; }
+  .cta:disabled{ opacity:.45; cursor:not-allowed; }
+  .cta-note{ margin-top:.6rem; font-size:.76rem; color:var(--ink-soft); min-height:1.1em; }
+  .cta-note.error{ color:var(--flag); }
+
+  .results{ padding:1.5rem 1.6rem 1.8rem; }
+  .results-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:.9rem; }
+  .legend{ display:flex; gap:1rem; flex-wrap:wrap; font-family:"IBM Plex Mono", monospace; font-size:.66rem; letter-spacing:.04em; color:var(--ink-soft); }
+  .legend span{ display:inline-flex; align-items:center; gap:.35rem; }
+  .legend i{ width:7px; height:7px; border-radius:50%; display:inline-block; }
+
+  .summary{
+    font-family:"Newsreader", Georgia, serif; font-weight:500; font-size:1.18rem; line-height:1.42;
+    padding:.9rem 1.1rem; border:1px solid var(--rule); border-left:3px solid var(--ink); border-radius:2px;
+    margin-bottom:1.3rem; background:var(--paper); text-wrap:balance;
+  }
+
+  .items{ display:flex; flex-direction:column; gap:.65rem; margin-bottom:1.5rem; }
+  .item{ display:grid; grid-template-columns:1fr auto; gap:.1rem 1rem; padding:.7rem .9rem; border-left:3px solid var(--v, var(--ink-soft)); background:var(--paper); border-radius:2px; }
+  .item .label{ font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); grid-column:1; }
+  .item .verdict{ font-family:"IBM Plex Mono", monospace; font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; color:var(--v, var(--ink-soft)); font-weight:600; grid-column:2; text-align:right; white-space:nowrap; }
+  .item .value{ font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:1rem; grid-column:1; font-variant-numeric:tabular-nums; }
+  .item .note{ grid-column:1 / -1; font-size:.86rem; color:var(--ink-soft); margin-top:.15rem; line-height:1.45; }
+
+  .letter-block{ border-top:1px dashed var(--rule); padding-top:1.3rem; }
+  .letter-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.7rem; flex-wrap:wrap; gap:.6rem; }
+  .letter-head h3{ font-family:"Newsreader", Georgia, serif; font-size:1.05rem; font-weight:600; margin:0; }
+  .letter-actions{ display:flex; gap:.5rem; }
+  .btn-small{
+    background:transparent; border:1px solid var(--rule); color:var(--ink); font-family:"IBM Plex Sans", sans-serif;
+    font-size:.76rem; font-weight:600; padding:.4rem .7rem; border-radius:3px; cursor:pointer;
+  }
+  .btn-small:hover{ border-color:var(--ink); }
+  .btn-small:disabled{ opacity:.4; cursor:not-allowed; }
+  .letter-body{
+    background:var(--paper); border:1px solid var(--rule); border-radius:2px; padding:1rem 1.1rem;
+    font-size:.92rem; white-space:pre-wrap; line-height:1.6; max-height:340px; overflow-y:auto;
+  }
+
+  /* ---------- chat ---------- */
+  .chat-panel{ margin-top:1.75rem; padding:1.5rem 1.6rem 1.7rem; }
+  .chat-suggestions{ display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
+  .chip{
+    background:var(--paper); border:1px solid var(--rule); color:var(--ink-soft);
+    font-family:"IBM Plex Sans", sans-serif; font-size:.8rem; padding:.4rem .8rem;
+    border-radius:999px; cursor:pointer;
+  }
+  .chip:hover{ border-color:var(--ink); color:var(--ink); }
+  .chip:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .chat-messages{
+    display:flex; flex-direction:column; gap:.7rem; max-height:360px; overflow-y:auto;
+    margin-bottom:1rem; padding-right:.2rem;
+  }
+  .chat-messages:empty{ display:none; }
+  .bubble{ max-width:80%; padding:.65rem .9rem; border-radius:10px; font-size:.9rem; line-height:1.5; }
+  .bubble.user{
+    align-self:flex-end; background:var(--ink); color:var(--panel); border-bottom-right-radius:2px;
+  }
+  .bubble.assistant{
+    align-self:flex-start; background:var(--paper); border:1px solid var(--rule);
+    border-bottom-left-radius:2px;
+  }
+  .bubble.assistant.error{ border-color:var(--flag); color:var(--flag); }
+
+  .chat-input-row{ display:flex; gap:.6rem; }
+  .chat-input-row input{
+    flex:1; background:transparent; border:none; border-bottom:1px solid var(--rule);
+    padding:.5rem 0; font-size:.92rem; color:var(--ink); font-family:"IBM Plex Sans", sans-serif;
+  }
+  .chat-input-row input:focus{ border-bottom-color:var(--ink); }
+  .chat-input-row button{ flex:none; }
+
+  footer{ margin-top:2.5rem; font-size:.78rem; color:var(--ink-soft); max-width:70ch; }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="header-row">
+      <div>
+        <h1 class="wordmark">Reasonable</h1>
+        <div class="tagline">Service charge reasonableness check</div>
+      </div>
+      <button type="button" class="theme-toggle" id="themeToggle" role="switch" aria-checked="false" aria-label="Toggle dark mode">
+        <svg class="track-icon sun" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="3.2"/><g stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><line x1="8" y1="0.5" x2="8" y2="2.2"/><line x1="8" y1="13.8" x2="8" y2="15.5"/><line x1="0.5" y1="8" x2="2.2" y2="8"/><line x1="13.8" y1="8" x2="15.5" y2="8"/><line x1="2.6" y1="2.6" x2="3.8" y2="3.8"/><line x1="12.2" y1="12.2" x2="13.4" y2="13.4"/><line x1="2.6" y1="13.4" x2="3.8" y2="12.2"/><line x1="12.2" y1="3.8" x2="13.4" y2="2.6"/></g></svg>
+        <svg class="track-icon moon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M14 9.8A6.5 6.5 0 1 1 6.2 2a5.2 5.2 0 0 0 7.8 7.8Z"/></svg>
+        <span class="thumb"></span>
+      </button>
+    </div>
+    <p class="subhead">Enter what's on your service charge demand. Reasonable checks each line against typical costs for a building like yours, and drafts the letter to challenge what doesn't add up.</p>
+    <p class="statute">Under <b>Section 19 of the Landlord and Tenant Act 1985</b>, a leaseholder only has to pay service charges that are "reasonably incurred" and of a "reasonable standard." That's the test this tool applies.</p>
+  </header>
+
+  <div class="board">
+    <section class="panel worksheet">
+      <div class="panel-eyebrow"><span>Worksheet</span><span id="worksheetTag" class="example-tag">Example</span></div>
+      <h2 class="panel-title">Your building &amp; bill</h2>
+      <p class="panel-note">Prefilled with a sample bill so you can see how it works — replace it with your own figures, then check it.</p>
+
+      <form id="chargeForm">
+        <div class="row2">
+          <div class="field">
+            <label for="propertyType">Building type</label>
+            <input id="propertyType" type="text" value="Converted house, 6 flats">
+          </div>
+          <div class="field">
+            <label for="region">Region / city</label>
+            <input id="region" type="text" value="Manchester">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="unitCount">Flats in the building</label>
+            <input id="unitCount" type="text" inputmode="numeric" value="6">
+          </div>
+          <div class="field">
+            <label>On site</label>
+            <div style="display:flex; gap:1rem; padding-top:.3rem;">
+              <label class="row-check"><input type="checkbox" id="hasLift"> Lift</label>
+              <label class="row-check"><input type="checkbox" id="hasStaff"> Staff/concierge</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="charges-label">Charges on your bill</div>
+        <div id="itemsContainer"></div>
+        <button type="button" class="add-row" id="addRowBtn">+ Add a charge</button>
+
+        <div class="totals">
+          <div><span id="totalDisplay" class="amount">£0</span><span style="font-size:.7rem; color:var(--ink-soft); margin-left:.4rem;">total / year</span></div>
+          <div class="perflat" id="perFlatDisplay"></div>
+        </div>
+
+        <div class="field">
+          <label for="notes">Anything else worth knowing</label>
+          <textarea id="notes">The reserve fund contribution jumped from £400 to £600 this year with no explanation given.</textarea>
+        </div>
+
+        <button type="submit" class="cta" id="ctaBtn">Check it</button>
+        <div class="cta-note" id="ctaNote">Uses your Claude account — first click will ask permission.</div>
+      </form>
+    </section>
+
+    <section class="panel results" id="resultsPanel">
+      <!-- populated by renderResults() -->
+    </section>
+  </div>
+
+  <section class="panel chat-panel">
+    <div class="panel-eyebrow"><span>Ask</span></div>
+    <h2 class="panel-title">Still not sure about something?</h2>
+    <p class="panel-note">Ask in plain English — reserve funds, Section 20, the tribunal process, your draft letter, anything. General guidance only, not formal legal advice.</p>
+    <div class="chat-suggestions" id="chatSuggestions">
+      <button type="button" class="chip">What's a reserve fund?</button>
+      <button type="button" class="chip">Can they raise my charge without warning?</button>
+      <button type="button" class="chip">What is Section 20 consultation?</button>
+      <button type="button" class="chip">How do I actually send a challenge?</button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <form class="chat-input-row" id="chatForm">
+      <input type="text" id="chatInput" placeholder="Ask a question…" autocomplete="off">
+      <button type="submit" class="btn-small" id="chatSendBtn">Send</button>
+    </form>
+    <div class="cta-note" id="chatNote"></div>
+  </section>
+
+  <footer>This is a general reasonableness check based on typical UK service charge patterns — not legal advice. For anything you plan to escalate formally, especially before the First-tier Tribunal, get it checked by a qualified professional; <a href="https://www.lease-advice.org/" style="color:inherit;">LEASE</a> offers free, impartial guidance.</footer>
+</div>
+
+<script>
+  const EXAMPLE_ANALYSIS = {
+    summary: "Mostly reasonable for a building this size, but the management fee looks high and the reserve fund needs more transparency before you accept it.",
+    items: [
+      { label: "Buildings insurance", value: "£480", verdict: "fine", note: "In line with typical premiums for a small converted building of this size." },
+      { label: "Cleaning of communal areas", value: "£240", verdict: "fine", note: "Reasonable for occasional cleaning of a shared hallway and entrance." },
+      { label: "Gardening", value: "£150", verdict: "fine", note: "Consistent with light grounds upkeep for a small converted building." },
+      { label: "Management fee", value: "£420", verdict: "flag", note: "That's £70 per flat. For a self-managed, self-contained building with no lift or staff, the typical range is £40–55 per flat. Worth asking for an itemised breakdown of what's included." },
+      { label: "Reserve fund contribution", value: "£600", verdict: "unclear", note: "Reserve contributions vary a lot depending on planned major works — this isn't necessarily unreasonable, but you're entitled to see the fund's purpose and the works schedule behind this year's increase." },
+      { label: "General repairs", value: "£180", verdict: "fine", note: "A modest, plausible figure for routine upkeep." }
+    ],
+    letter: "Subject: Query regarding this year's service charge demand\n\nDear [Managing Agent / Freeholder],\n\nThank you for the service charge demand for the current year. Before I settle payment, I'd like to raise two points under Section 19 of the Landlord and Tenant Act 1985, which requires service charges to be reasonably incurred.\n\nFirst, the management fee of £420 (£70 per flat) appears high for a small, self-contained building of six flats with no lift or staff. Could you provide an itemised breakdown of the services this fee covers?\n\nSecond, the reserve fund contribution has increased from £400 to £600 with no explanation provided. Could you share the fund's current balance, its stated purpose, and details of any planned major works this increase relates to?\n\nI'd appreciate a response before I finalise payment. I'm happy to discuss by phone if that's easier.\n\nKind regards,\n[Your name]"
+  };
+
+  const state = { analysis: EXAMPLE_ANALYSIS, isExample: true, loading: false };
+  const VERDICT_LABEL = { flag: "Worth challenging", fine: "Looks fair", unclear: "Ask for details" };
+  const VERDICT_VAR = { flag: "flag", fine: "fine", unclear: "ink-soft" };
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  // ---------- dynamic charge rows ----------
+  let rowId = 0;
+  function attachMoneyFormatting(input){
+    input.addEventListener("input", () => {
+      const digits = input.value.replace(/[^\d]/g, "");
+      input.value = digits ? Number(digits).toLocaleString("en-US") : "";
+      computeTotal();
+    });
+  }
+
+  function addItemRow(label, amount){
+    const id = "row" + (rowId++);
+    const row = document.createElement("div");
+    row.className = "charge-row";
+    row.dataset.rowId = id;
+    row.innerHTML = `
+      <div class="field">
+        <label>Charge</label>
+        <input type="text" class="charge-label" value="${esc(label)}" placeholder="e.g. Window cleaning">
+      </div>
+      <div class="field">
+        <label>Amount / yr</label>
+        <div class="money-field">
+          <span class="currency-prefix">£</span>
+          <input type="text" class="charge-amount" inputmode="numeric" value="${esc(amount)}">
+        </div>
+      </div>
+      <button type="button" class="remove-row" aria-label="Remove this charge">&times;</button>
+    `;
+    document.getElementById("itemsContainer").appendChild(row);
+    attachMoneyFormatting(row.querySelector(".charge-amount"));
+    row.querySelector(".remove-row").addEventListener("click", () => { row.remove(); computeTotal(); });
+    return row;
+  }
+
+  function computeTotal(){
+    let total = 0;
+    document.querySelectorAll(".charge-amount").forEach(inp => {
+      const n = parseInt(inp.value.replace(/[^\d]/g, ""), 10);
+      if (!isNaN(n)) total += n;
+    });
+    document.getElementById("totalDisplay").textContent = "£" + total.toLocaleString("en-US");
+    const units = parseInt(document.getElementById("unitCount").value, 10);
+    const perFlatEl = document.getElementById("perFlatDisplay");
+    if (units > 0) {
+      perFlatEl.textContent = "£" + Math.round(total / units).toLocaleString("en-US") + " / flat / year";
+    } else {
+      perFlatEl.textContent = "";
+    }
+  }
+
+  function readCharges(){
+    const rows = [];
+    document.querySelectorAll(".charge-row").forEach(row => {
+      const label = row.querySelector(".charge-label").value.trim();
+      const amount = row.querySelector(".charge-amount").value.trim();
+      if (label && amount) rows.push({ label, amount: "£" + amount });
+    });
+    return rows;
+  }
+
+  function readBuilding(){
+    return {
+      propertyType: document.getElementById("propertyType").value.trim() || "a leasehold flat",
+      region: document.getElementById("region").value.trim(),
+      unitCount: document.getElementById("unitCount").value.trim(),
+      hasLift: document.getElementById("hasLift").checked,
+      hasStaff: document.getElementById("hasStaff").checked,
+      notes: document.getElementById("notes").value.trim(),
+      charges: readCharges()
+    };
+  }
+
+  function buildPrompt(b){
+    const total = b.charges.reduce((s, c) => s + (parseInt(c.amount.replace(/[^\d]/g, ""), 10) || 0), 0);
+    const units = parseInt(b.unitCount, 10) || null;
+    const perFlat = units ? Math.round(total / units) : null;
+    const chargeLines = b.charges.map(c => `- ${c.label}: ${c.amount}/year`).join("\n");
+
+    return `You are a pragmatic UK leasehold expert helping a leaseholder assess whether their service charge is reasonable, applying the Section 19 Landlord and Tenant Act 1985 standard (charges must be "reasonably incurred" and services/works of a "reasonable standard"). Reply with ONLY a JSON object, no other text, no markdown fence.
+
+Building profile:
+- Type: ${b.propertyType}
+- Region: ${b.region || "not specified"}
+- Number of flats: ${b.unitCount || "not specified"}
+- Lift on site: ${b.hasLift ? "yes" : "no"}
+- Staff/concierge on site: ${b.hasStaff ? "yes" : "no"}
+- Total service charge: £${total}/year${perFlat ? ` (£${perFlat} per flat/year)` : ""}
+
+Charges on the bill:
+${chargeLines}
+
+Other context from the leaseholder: ${b.notes || "none"}
+
+Reply with ONLY a JSON object of this exact shape:
+{
+  "summary": "one sentence overall verdict, hedged appropriately (this is general guidance, not a legal ruling)",
+  "items": [
+    { "label": "the charge name as given", "value": "the amount restated, e.g. £420", "verdict": "flag" | "fine" | "unclear", "note": "one or two sentences of reasoning, benchmarked against typical costs for a building of this size/type/region with these facilities — be specific about numbers where you can, and say when a charge is genuinely impossible to judge without more information (e.g. reserve fund purpose, service specification)" }
+  ],
+  "letter": "a complete, ready-to-send letter in British English to the managing agent/freeholder, polite but direct, querying only the charges marked flag or unclear, citing Section 19 where relevant, requesting an itemised breakdown, 120-180 words, addressed 'Dear [Managing Agent / Freeholder],' and signed '[Your name]'"
+}
+Only mark something "flag" if it looks genuinely high against realistic UK norms for this type of building — don't flag things just to have something to say. Ground every note in realistic figures, not vague reassurance.`;
+  }
+
+  function renderResults(){
+    const panel = document.getElementById("resultsPanel");
+    const a = state.analysis;
+    const itemsHtml = (a.items || []).map(it => `
+      <div class="item" style="--v:var(--${VERDICT_VAR[it.verdict] || "ink-soft"})">
+        <div class="label">${esc(it.label)}</div>
+        <div class="verdict">${esc(VERDICT_LABEL[it.verdict] || it.verdict)}</div>
+        <div class="value">${esc(it.value)}</div>
+        <div class="note">${esc(it.note)}</div>
+      </div>
+    `).join("");
+
+    panel.innerHTML = `
+      <div class="results-head">
+        <div>
+          <div class="panel-eyebrow"><span>The verdict</span></div>
+          <h2 class="panel-title">${state.isExample ? "Example analysis" : "Your analysis"}</h2>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--fine)"></i>Looks fair</span>
+          <span><i style="background:var(--ink-soft)"></i>Ask for details</span>
+          <span><i style="background:var(--flag)"></i>Worth challenging</span>
+        </div>
+      </div>
+      <div class="summary">${esc(a.summary)}</div>
+      <div class="items">${itemsHtml}</div>
+      <div class="letter-block">
+        <div class="letter-head">
+          <h3>Draft query letter</h3>
+          <div class="letter-actions">
+            <button class="btn-small" id="copyBtn" type="button">Copy</button>
+            <button class="btn-small" id="downloadBtn" type="button">${downloadsFn ? "Save as .txt" : "Save unavailable"}</button>
+          </div>
+        </div>
+        <div class="letter-body" id="letterBody">${esc(a.letter)}</div>
+      </div>
+    `;
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("copyBtn");
+      try {
+        await navigator.clipboard.writeText(a.letter);
+        btn.textContent = "Copied";
+        setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+      } catch {
+        btn.textContent = "Select & copy manually";
+        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+      }
+    });
+
+    const dlBtn = document.getElementById("downloadBtn");
+    if (!downloadsFn) dlBtn.disabled = true;
+    dlBtn.addEventListener("click", async () => {
+      if (!downloadsFn) return;
+      try {
+        dlBtn.disabled = true;
+        dlBtn.textContent = "Saving…";
+        await downloadsFn.save({ filename: "service-charge-query-letter.txt", data: a.letter });
+        dlBtn.textContent = "Saved";
+      } catch (e) {
+        dlBtn.textContent = e && e.code === "declined" ? "Not saved" : "Couldn't save";
+      } finally {
+        setTimeout(() => { dlBtn.textContent = "Save as .txt"; dlBtn.disabled = false; }, 1600);
+      }
+    });
+  }
+
+  let sampleFn = null;
+  let downloadsFn = null;
+  let activeAbort = null;
+
+  // Consent is per page-view and shared by every sample() call — once declined,
+  // both the checker and chat go quiet together until the page is reloaded.
+  function disableSampling(message){
+    sampleFn = null;
+    document.getElementById("ctaBtn").disabled = true;
+    noteError(message);
+    document.getElementById("chatSendBtn").disabled = true;
+    document.getElementById("chatInput").disabled = true;
+    document.querySelectorAll("#chatSuggestions .chip").forEach(c => c.disabled = true);
+    document.getElementById("chatNote").textContent = message;
+  }
+
+  function setLoading(loading){
+    state.loading = loading;
+    const btn = document.getElementById("ctaBtn");
+    const note = document.getElementById("ctaNote");
+    btn.disabled = loading;
+    btn.textContent = loading ? "Checking…" : "Check it";
+    if (loading) { note.textContent = "Thinking — this usually takes 20–60 seconds."; note.classList.remove("error"); }
+  }
+  function noteError(msg){ const n = document.getElementById("ctaNote"); n.textContent = msg; n.classList.add("error"); }
+  function noteReady(msg){ const n = document.getElementById("ctaNote"); n.textContent = msg; n.classList.remove("error"); }
+
+  async function handleSubmit(ev){
+    ev.preventDefault();
+    if (!sampleFn || state.loading) return;
+    const building = readBuilding();
+    if (!building.charges.length) { noteError("Add at least one charge with a label and amount."); return; }
+    setLoading(true);
+    activeAbort = new AbortController();
+    try {
+      const data = await sampleFn.json(buildPrompt(building), { modelTier: "default", signal: activeAbort.signal });
+      if (data && Array.isArray(data.items) && typeof data.summary === "string" && typeof data.letter === "string") {
+        state.analysis = data;
+        state.isExample = false;
+        document.getElementById("worksheetTag").style.display = "none";
+        renderResults();
+        noteReady("Done — edit any figure and check it again any time.");
+      } else {
+        noteError("Got an unexpected reply shape. Try again.");
+      }
+    } catch (e) {
+      const code = e && e.code;
+      if (code === "cancelled") noteReady("Cancelled.");
+      else if (code === "not_granted") disableSampling("Permission declined — reload the page and allow Claude access to try again.");
+      else if (code === "rate_limited") noteError("Too many requests right now — wait a moment and try again.");
+      else if (code === "invalid_json") noteError("Couldn't read the analysis back — try again.");
+      else noteError("Something went wrong — try again.");
+    } finally {
+      setLoading(false);
+      activeAbort = null;
+    }
+  }
+
+  // ---------- theme toggle ----------
+  function currentTheme(){
+    let stored = null;
+    try { stored = localStorage.getItem("reasonable_theme"); } catch {}
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  function setThemeToggleUI(theme){
+    document.getElementById("themeToggle").setAttribute("aria-checked", theme === "dark" ? "true" : "false");
+  }
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("reasonable_theme", next); } catch {}
+    setThemeToggleUI(next);
+  });
+  setThemeToggleUI(currentTheme());
+
+  // ---------- chat ----------
+  const CHAT_INSTRUCTIONS = `You are a specialist assistant on UK leasehold service charges. You only help with: Section 19 of the Landlord and Tenant Act 1985 (the "reasonably incurred" / "reasonable standard" test), Section 20 consultation requirements for major works, reserve/sinking funds, the First-tier Tribunal (Property Chamber) process, and general leaseholder rights around service charges and disputing them. Answer concisely in plain English, normally 2-5 sentences. If asked something outside this domain, say briefly that it's outside what you cover and redirect to what you can help with. Whenever a question touches on a specific dispute or formal action, make clear this is general information, not formal legal advice, and that a solicitor or LEASE (the free Leasehold Advisory Service) can help further.`;
+
+  let chatTurns = [];
+  let chatAbort = null;
+  let chatPending = null;
+
+  function renderChatHistory(){
+    const box = document.getElementById("chatMessages");
+    const bubbles = chatTurns.map(t => `<div class="bubble ${t.role}${t.isError ? " error" : ""}">${esc(t.content)}</div>`).join("");
+    const pendingBubble = chatPending !== null ? `<div class="bubble assistant" id="chatPendingBubble">${esc(chatPending) || "…"}</div>` : "";
+    box.innerHTML = bubbles + pendingBubble;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function setChatLoading(loading){
+    document.getElementById("chatSendBtn").disabled = loading;
+    document.getElementById("chatInput").disabled = loading;
+    document.querySelectorAll("#chatSuggestions .chip").forEach(c => { if (sampleFn) c.disabled = loading; });
+  }
+
+  async function sendChatMessage(text){
+    const q = (text || "").trim();
+    if (!q || !sampleFn) return;
+    chatTurns.push({ role: "user", content: q });
+    chatPending = "";
+    renderChatHistory();
+    setChatLoading(true);
+    chatAbort = new AbortController();
+    try {
+      const { text: reply } = await sampleFn(
+        [{ role: "user", content: CHAT_INSTRUCTIONS }, ...chatTurns],
+        {
+          cache: false,
+          modelTier: "quick",
+          signal: chatAbort.signal,
+          onText: (u) => {
+            chatPending = u.text;
+            const el = document.getElementById("chatPendingBubble");
+            if (el) el.textContent = u.text;
+          }
+        }
+      );
+      chatTurns.push({ role: "assistant", content: reply });
+      chatPending = null;
+      renderChatHistory();
+      document.getElementById("chatNote").textContent = "";
+    } catch (e) {
+      chatPending = null;
+      const code = e && e.code;
+      if (code === "cancelled") {
+        renderChatHistory();
+      } else {
+        let msg = "Something went wrong — try again.";
+        if (code === "not_granted") { msg = "Permission declined — reload the page and allow Claude access to try again."; disableSampling(msg); }
+        else if (code === "rate_limited") msg = "Too many requests — wait a moment and try again.";
+        else if (code === "refused") msg = "That couldn't be answered — try rephrasing.";
+        chatTurns.push({ role: "assistant", content: msg, isError: true });
+        renderChatHistory();
+      }
+    } finally {
+      setChatLoading(false);
+      chatAbort = null;
+    }
+  }
+
+  document.getElementById("chatForm").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const input = document.getElementById("chatInput");
+    const text = input.value;
+    input.value = "";
+    sendChatMessage(text);
+  });
+
+  document.querySelectorAll("#chatSuggestions .chip").forEach(chip => {
+    chip.addEventListener("click", () => sendChatMessage(chip.textContent));
+  });
+
+  // ---------- init ----------
+  const EXAMPLE_ROWS = [
+    ["Buildings insurance", "480"],
+    ["Cleaning of communal areas", "240"],
+    ["Gardening", "150"],
+    ["Management fee", "420"],
+    ["Reserve fund contribution", "600"],
+    ["General repairs", "180"]
+  ];
+  EXAMPLE_ROWS.forEach(([label, amount]) => addItemRow(label, amount));
+  computeTotal();
+  document.getElementById("unitCount").addEventListener("input", computeTotal);
+
+  document.getElementById("addRowBtn").addEventListener("click", () => addItemRow("", ""));
+  document.getElementById("chargeForm").addEventListener("submit", handleSubmit);
+  renderResults();
+
+  (async () => {
+    try { sampleFn = await claude.use("sample"); } catch { sampleFn = null; }
+    if (!sampleFn) {
+      disableSampling("This is a static copy outside Claude — the checker and chat need to run inside a Claude Artifact to work.");
+    } else {
+      noteReady("Uses your Claude account — first click will ask permission.");
+    }
+    try { downloadsFn = await claude.use("downloads"); } catch { downloadsFn = null; }
+    renderResults();
+  })();
+</script>
+</body>
+</html>
