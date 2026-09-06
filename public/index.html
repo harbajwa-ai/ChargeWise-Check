@@ -55,7 +55,6 @@
 
   .header-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:1.5rem; }
 
-  /* ---------- theme toggle (sliding switch) ---------- */
   .theme-toggle{
     flex:none; position:relative; width:52px; height:28px; margin-top:.3rem;
     border-radius:999px; border:1px solid var(--rule); background:var(--panel);
@@ -209,7 +208,6 @@
     font-size:.92rem; white-space:pre-wrap; line-height:1.6; max-height:340px; overflow-y:auto;
   }
 
-  /* ---------- chat ---------- */
   .chat-panel{ margin-top:1.75rem; padding:1.5rem 1.6rem 1.7rem; }
   .chat-suggestions{ display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
   .chip{
@@ -312,7 +310,7 @@
         </div>
 
         <button type="submit" class="cta" id="ctaBtn">Check it</button>
-        <div class="cta-note" id="ctaNote">Uses your Claude account — first click will ask permission.</div>
+        <div class="cta-note" id="ctaNote">Runs on Cloudflare Workers AI — free, no account needed.</div>
       </form>
     </section>
 
@@ -339,7 +337,7 @@
     <div class="cta-note" id="chatNote"></div>
   </section>
 
-  <footer>This is a general reasonableness check based on typical UK service charge patterns — not legal advice. For anything you plan to escalate formally, especially before the First-tier Tribunal, get it checked by a qualified professional; <a href="https://www.lease-advice.org/" style="color:inherit;">LEASE</a> offers free, impartial guidance.</footer>
+  <footer>This is a general reasonableness check based on typical UK service charge patterns — not legal advice. It runs on a free open-source model (not Claude), so treat its reasoning as a starting point, not a final word. For anything you plan to escalate formally, especially before the First-tier Tribunal, get it checked by a qualified professional; <a href="https://www.lease-advice.org/" style="color:inherit;">LEASE</a> offers free, impartial guidance.</footer>
 </div>
 
 <script>
@@ -365,7 +363,6 @@
   }
 
   // ---------- dynamic charge rows ----------
-  let rowId = 0;
   function attachMoneyFormatting(input){
     input.addEventListener("input", () => {
       const digits = input.value.replace(/[^\d]/g, "");
@@ -375,10 +372,8 @@
   }
 
   function addItemRow(label, amount){
-    const id = "row" + (rowId++);
     const row = document.createElement("div");
     row.className = "charge-row";
-    row.dataset.rowId = id;
     row.innerHTML = `
       <div class="field">
         <label>Charge</label>
@@ -437,38 +432,6 @@
     };
   }
 
-  function buildPrompt(b){
-    const total = b.charges.reduce((s, c) => s + (parseInt(c.amount.replace(/[^\d]/g, ""), 10) || 0), 0);
-    const units = parseInt(b.unitCount, 10) || null;
-    const perFlat = units ? Math.round(total / units) : null;
-    const chargeLines = b.charges.map(c => `- ${c.label}: ${c.amount}/year`).join("\n");
-
-    return `You are a pragmatic UK leasehold expert helping a leaseholder assess whether their service charge is reasonable, applying the Section 19 Landlord and Tenant Act 1985 standard (charges must be "reasonably incurred" and services/works of a "reasonable standard"). Reply with ONLY a JSON object, no other text, no markdown fence.
-
-Building profile:
-- Type: ${b.propertyType}
-- Region: ${b.region || "not specified"}
-- Number of flats: ${b.unitCount || "not specified"}
-- Lift on site: ${b.hasLift ? "yes" : "no"}
-- Staff/concierge on site: ${b.hasStaff ? "yes" : "no"}
-- Total service charge: £${total}/year${perFlat ? ` (£${perFlat} per flat/year)` : ""}
-
-Charges on the bill:
-${chargeLines}
-
-Other context from the leaseholder: ${b.notes || "none"}
-
-Reply with ONLY a JSON object of this exact shape:
-{
-  "summary": "one sentence overall verdict, hedged appropriately (this is general guidance, not a legal ruling)",
-  "items": [
-    { "label": "the charge name as given", "value": "the amount restated, e.g. £420", "verdict": "flag" | "fine" | "unclear", "note": "one or two sentences of reasoning, benchmarked against typical costs for a building of this size/type/region with these facilities — be specific about numbers where you can, and say when a charge is genuinely impossible to judge without more information (e.g. reserve fund purpose, service specification)" }
-  ],
-  "letter": "a complete, ready-to-send letter in British English to the managing agent/freeholder, polite but direct, querying only the charges marked flag or unclear, citing Section 19 where relevant, requesting an itemised breakdown, 120-180 words, addressed 'Dear [Managing Agent / Freeholder],' and signed '[Your name]'"
-}
-Only mark something "flag" if it looks genuinely high against realistic UK norms for this type of building — don't flag things just to have something to say. Ground every note in realistic figures, not vague reassurance.`;
-  }
-
   function renderResults(){
     const panel = document.getElementById("resultsPanel");
     const a = state.analysis;
@@ -500,7 +463,7 @@ Only mark something "flag" if it looks genuinely high against realistic UK norms
           <h3>Draft query letter</h3>
           <div class="letter-actions">
             <button class="btn-small" id="copyBtn" type="button">Copy</button>
-            <button class="btn-small" id="downloadBtn" type="button">${downloadsFn ? "Save as .txt" : "Save unavailable"}</button>
+            <button class="btn-small" id="downloadBtn" type="button">Save as .txt</button>
           </div>
         </div>
         <div class="letter-body" id="letterBody">${esc(a.letter)}</div>
@@ -519,59 +482,50 @@ Only mark something "flag" if it looks genuinely high against realistic UK norms
       }
     });
 
-    const dlBtn = document.getElementById("downloadBtn");
-    if (!downloadsFn) dlBtn.disabled = true;
-    dlBtn.addEventListener("click", async () => {
-      if (!downloadsFn) return;
-      try {
-        dlBtn.disabled = true;
-        dlBtn.textContent = "Saving…";
-        await downloadsFn.save({ filename: "service-charge-query-letter.txt", data: a.letter });
-        dlBtn.textContent = "Saved";
-      } catch (e) {
-        dlBtn.textContent = e && e.code === "declined" ? "Not saved" : "Couldn't save";
-      } finally {
-        setTimeout(() => { dlBtn.textContent = "Save as .txt"; dlBtn.disabled = false; }, 1600);
-      }
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      saveTextFile("service-charge-query-letter.txt", a.letter);
     });
   }
 
-  let sampleFn = null;
-  let downloadsFn = null;
-  let activeAbort = null;
-
-  // Consent is per page-view and shared by every sample() call — once declined,
-  // both the checker and chat go quiet together until the page is reloaded.
-  function disableSampling(message){
-    sampleFn = null;
-    document.getElementById("ctaBtn").disabled = true;
-    noteError(message);
-    document.getElementById("chatSendBtn").disabled = true;
-    document.getElementById("chatInput").disabled = true;
-    document.querySelectorAll("#chatSuggestions .chip").forEach(c => c.disabled = true);
-    document.getElementById("chatNote").textContent = message;
+  // Plain browser download — works normally outside the Claude Artifact sandbox.
+  function saveTextFile(filename, text){
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
-  function setLoading(loading){
-    state.loading = loading;
+  let loading = false;
+  function setLoading(isLoading){
+    loading = isLoading;
     const btn = document.getElementById("ctaBtn");
     const note = document.getElementById("ctaNote");
-    btn.disabled = loading;
-    btn.textContent = loading ? "Checking…" : "Check it";
-    if (loading) { note.textContent = "Thinking — this usually takes 20–60 seconds."; note.classList.remove("error"); }
+    btn.disabled = isLoading;
+    btn.textContent = isLoading ? "Checking…" : "Check it";
+    if (isLoading) { note.textContent = "Thinking — this usually takes 10–30 seconds."; note.classList.remove("error"); }
   }
   function noteError(msg){ const n = document.getElementById("ctaNote"); n.textContent = msg; n.classList.add("error"); }
   function noteReady(msg){ const n = document.getElementById("ctaNote"); n.textContent = msg; n.classList.remove("error"); }
 
   async function handleSubmit(ev){
     ev.preventDefault();
-    if (!sampleFn || state.loading) return;
+    if (loading) return;
     const building = readBuilding();
     if (!building.charges.length) { noteError("Add at least one charge with a label and amount."); return; }
     setLoading(true);
-    activeAbort = new AbortController();
     try {
-      const data = await sampleFn.json(buildPrompt(building), { modelTier: "default", signal: activeAbort.signal });
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(building)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
       if (data && Array.isArray(data.items) && typeof data.summary === "string" && typeof data.letter === "string") {
         state.analysis = data;
         state.isExample = false;
@@ -582,15 +536,9 @@ Only mark something "flag" if it looks genuinely high against realistic UK norms
         noteError("Got an unexpected reply shape. Try again.");
       }
     } catch (e) {
-      const code = e && e.code;
-      if (code === "cancelled") noteReady("Cancelled.");
-      else if (code === "not_granted") disableSampling("Permission declined — reload the page and allow Claude access to try again.");
-      else if (code === "rate_limited") noteError("Too many requests right now — wait a moment and try again.");
-      else if (code === "invalid_json") noteError("Couldn't read the analysis back — try again.");
-      else noteError("Something went wrong — try again.");
+      noteError("Something went wrong — try again in a moment.");
     } finally {
       setLoading(false);
-      activeAbort = null;
     }
   }
 
@@ -613,68 +561,46 @@ Only mark something "flag" if it looks genuinely high against realistic UK norms
   setThemeToggleUI(currentTheme());
 
   // ---------- chat ----------
-  const CHAT_INSTRUCTIONS = `You are a specialist assistant on UK leasehold service charges. You only help with: Section 19 of the Landlord and Tenant Act 1985 (the "reasonably incurred" / "reasonable standard" test), Section 20 consultation requirements for major works, reserve/sinking funds, the First-tier Tribunal (Property Chamber) process, and general leaseholder rights around service charges and disputing them. Answer concisely in plain English, normally 2-5 sentences. If asked something outside this domain, say briefly that it's outside what you cover and redirect to what you can help with. Whenever a question touches on a specific dispute or formal action, make clear this is general information, not formal legal advice, and that a solicitor or LEASE (the free Leasehold Advisory Service) can help further.`;
-
   let chatTurns = [];
-  let chatAbort = null;
-  let chatPending = null;
+  let chatLoading = false;
 
-  function renderChatHistory(){
+  function renderChatHistory(pendingText){
     const box = document.getElementById("chatMessages");
     const bubbles = chatTurns.map(t => `<div class="bubble ${t.role}${t.isError ? " error" : ""}">${esc(t.content)}</div>`).join("");
-    const pendingBubble = chatPending !== null ? `<div class="bubble assistant" id="chatPendingBubble">${esc(chatPending) || "…"}</div>` : "";
+    const pendingBubble = pendingText !== undefined ? `<div class="bubble assistant" id="chatPendingBubble">${esc(pendingText) || "…"}</div>` : "";
     box.innerHTML = bubbles + pendingBubble;
     box.scrollTop = box.scrollHeight;
   }
 
-  function setChatLoading(loading){
-    document.getElementById("chatSendBtn").disabled = loading;
-    document.getElementById("chatInput").disabled = loading;
-    document.querySelectorAll("#chatSuggestions .chip").forEach(c => { if (sampleFn) c.disabled = loading; });
+  function setChatLoading(isLoading){
+    chatLoading = isLoading;
+    document.getElementById("chatSendBtn").disabled = isLoading;
+    document.getElementById("chatInput").disabled = isLoading;
+    document.querySelectorAll("#chatSuggestions .chip").forEach(c => c.disabled = isLoading);
   }
 
   async function sendChatMessage(text){
     const q = (text || "").trim();
-    if (!q || !sampleFn) return;
+    if (!q || chatLoading) return;
     chatTurns.push({ role: "user", content: q });
-    chatPending = "";
-    renderChatHistory();
+    renderChatHistory("");
     setChatLoading(true);
-    chatAbort = new AbortController();
     try {
-      const { text: reply } = await sampleFn(
-        [{ role: "user", content: CHAT_INSTRUCTIONS }, ...chatTurns],
-        {
-          cache: false,
-          modelTier: "quick",
-          signal: chatAbort.signal,
-          onText: (u) => {
-            chatPending = u.text;
-            const el = document.getElementById("chatPendingBubble");
-            if (el) el.textContent = u.text;
-          }
-        }
-      );
-      chatTurns.push({ role: "assistant", content: reply });
-      chatPending = null;
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ turns: chatTurns })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      chatTurns.push({ role: "assistant", content: data.reply });
       renderChatHistory();
       document.getElementById("chatNote").textContent = "";
     } catch (e) {
-      chatPending = null;
-      const code = e && e.code;
-      if (code === "cancelled") {
-        renderChatHistory();
-      } else {
-        let msg = "Something went wrong — try again.";
-        if (code === "not_granted") { msg = "Permission declined — reload the page and allow Claude access to try again."; disableSampling(msg); }
-        else if (code === "rate_limited") msg = "Too many requests — wait a moment and try again.";
-        else if (code === "refused") msg = "That couldn't be answered — try rephrasing.";
-        chatTurns.push({ role: "assistant", content: msg, isError: true });
-        renderChatHistory();
-      }
+      chatTurns.push({ role: "assistant", content: "Something went wrong — try again.", isError: true });
+      renderChatHistory();
     } finally {
       setChatLoading(false);
-      chatAbort = null;
     }
   }
 
@@ -706,17 +632,6 @@ Only mark something "flag" if it looks genuinely high against realistic UK norms
   document.getElementById("addRowBtn").addEventListener("click", () => addItemRow("", ""));
   document.getElementById("chargeForm").addEventListener("submit", handleSubmit);
   renderResults();
-
-  (async () => {
-    try { sampleFn = await claude.use("sample"); } catch { sampleFn = null; }
-    if (!sampleFn) {
-      disableSampling("This is a static copy outside Claude — the checker and chat need to run inside a Claude Artifact to work.");
-    } else {
-      noteReady("Uses your Claude account — first click will ask permission.");
-    }
-    try { downloadsFn = await claude.use("downloads"); } catch { downloadsFn = null; }
-    renderResults();
-  })();
 </script>
 </body>
 </html>

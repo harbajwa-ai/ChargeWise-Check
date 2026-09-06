@@ -1,0 +1,10 @@
+name = "chargewise-check"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[ai]
+binding = "AI"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
