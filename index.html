@@ -536,7 +536,7 @@
         noteError("Got an unexpected reply shape. Try again.");
       }
     } catch (e) {
-      noteError("Something went wrong — try again in a moment.");
+      noteError("Error: " + (e && e.message ? e.message : "unknown"));
     } finally {
       setLoading(false);
     }
