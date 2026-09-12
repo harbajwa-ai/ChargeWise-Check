@@ -525,7 +525,7 @@
         body: JSON.stringify(building)
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
+      if (!res.ok) throw new Error((data.error || "Request failed") + (data.detail ? " — " + data.detail : ""));
       if (data && Array.isArray(data.items) && typeof data.summary === "string" && typeof data.letter === "string") {
         state.analysis = data;
         state.isExample = false;
