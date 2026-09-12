@@ -1,25 +1,9 @@
-// Cloudflare Worker: serves the static app and answers /api/analyze + /api/chat
-// using Workers AI (free daily allocation, no API key needed).
+// Cloudflare Pages Function — handles POST /api/analyze
+// Runs on Workers AI (free tier), bound via the dashboard: Settings > Functions > Bindings > Add > Workers AI.
 
 const MODEL = "@cf/meta/llama-3.1-8b-instruct";
-// Cloudflare retires/adds Workers AI models regularly. If this model ever
-// 404s, check https://developers.cloudflare.com/workers-ai/models/ for a
-// current instruct model and swap the string above.
-
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    if (url.pathname === "/api/analyze" && request.method === "POST") {
-      return handleAnalyze(request, env);
-    }
-    if (url.pathname === "/api/chat" && request.method === "POST") {
-      return handleChat(request, env);
-    }
-
-    return env.ASSETS.fetch(request);
-  }
-};
+// If Cloudflare retires this model, check https://developers.cloudflare.com/workers-ai/models/
+// for a current instruct model and swap the string above.
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -37,7 +21,13 @@ function extractJson(text) {
   return JSON.parse(text.slice(start, end + 1));
 }
 
-async function handleAnalyze(request, env) {
+export async function onRequestPost(context) {
+  const { request, env } = context;
+
+  if (!env.AI) {
+    return jsonResponse({ error: "AI binding not configured. Add it in Settings > Functions > Bindings." }, 500);
+  }
+
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid request body" }, 400); }
 
@@ -85,24 +75,5 @@ Only mark something "flag" if it looks genuinely high against realistic UK norms
     return jsonResponse(parsed);
   } catch (err) {
     return jsonResponse({ error: "Analysis failed", detail: String(err) }, 500);
-  }
-}
-
-const CHAT_INSTRUCTIONS = `You are a specialist assistant on UK leasehold service charges. You only help with: Section 19 of the Landlord and Tenant Act 1985 (the "reasonably incurred" / "reasonable standard" test), Section 20 consultation requirements for major works, reserve/sinking funds, the First-tier Tribunal (Property Chamber) process, and general leaseholder rights around service charges and disputing them. Answer concisely in plain English, normally 2-5 sentences. If asked something outside this domain, say briefly that it's outside what you cover and redirect to what you can help with. Whenever a question touches on a specific dispute or formal action, make clear this is general information, not formal legal advice, and that a solicitor or LEASE (the free Leasehold Advisory Service) can help further.`;
-
-async function handleChat(request, env) {
-  let body;
-  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid request body" }, 400); }
-
-  const turns = Array.isArray(body.turns) ? body.turns : [];
-  if (!turns.length) return jsonResponse({ error: "No message provided" }, 400);
-
-  const messages = [{ role: "system", content: CHAT_INSTRUCTIONS }, ...turns];
-
-  try {
-    const aiResult = await env.AI.run(MODEL, { messages, max_tokens: 400 });
-    return jsonResponse({ reply: aiResult.response });
-  } catch (err) {
-    return jsonResponse({ error: "Chat failed", detail: String(err) }, 500);
   }
 }
